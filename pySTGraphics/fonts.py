@@ -1,9 +1,11 @@
-from lib.graphics import OpenGL3lib
+import pySTGraphics.OpenGL3lib as OpenGL3lib
+import os
+package_directory = os.path.dirname(os.path.abspath(__file__))
 
-ProFontWindows = "data/fonts/ProFontWinTweaked/ProFontWindows.ttf"
-DigitalItalicFont = "data/fonts/DS-Digital-ItalicST.ttf"
-Vera = "data/fonts/ttf-bitstream-vera-1.10/Vera.ttf"
-VeraB = "data/fonts/ttf-bitstream-vera-1.10/VeraMoBd.ttf"
+ProFontWindows = os.path.join(package_directory, 'fonts', "ProFontWinTweaked/ProFontWindows.ttf")
+DigitalItalicFont = os.path.join(package_directory, 'fonts', "DS-Digital-ItalicST.ttf")
+Vera = os.path.join(package_directory, 'fonts', "ttf-bitstream-vera-1.10/Vera.ttf")
+VeraB = os.path.join(package_directory, 'fonts', "ttf-bitstream-vera-1.10/VeraMoBd.ttf")
 
 FONT_SIZE_VSMALL 	= 11
 FONT_SIZE_13PT	 	= 13
