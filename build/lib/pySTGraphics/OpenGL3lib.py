@@ -19,14 +19,14 @@ from PIL import ImageDraw
 
 np.set_printoptions(threshold=sys.maxsize)
 
-COLOR_WHITE 	= (1.0,1.0,1.0,1.0)
-COLOR_PINK 		= (1.0,0,1.0,1.0)
-COLOR_GREY 		= (0.5,0.5,0.5,1.0)
+COLOR_WHITE		= (1.0,1.0,1.0,1.0)
+COLOR_PINK		= (1.0,0,1.0,1.0)
+COLOR_GREY		= (0.5,0.5,0.5,1.0)
 COLOR_TURQUOISE = (0,1.0,1.0,1.0)
-COLOR_RED 		= (1.0,0,0,1.0)
-COLOR_GREEN 	= (0,213.0/255.0,0,1.0)
-COLOR_BLUE 		= (0.0,0,1.0,1.0)
-COLOR_BLACK 	= (0.0,0.0,0.0,1.0)
+COLOR_RED		= (1.0,0,0,1.0)
+COLOR_GREEN		= (0,213.0/255.0,0,1.0)
+COLOR_BLUE		= (0.0,0,1.0,1.0)
+COLOR_BLACK		= (0.0,0.0,0.0,1.0)
 
 screenWidth = 0
 screenHeight = 0
@@ -61,8 +61,8 @@ def reshape(width,height):
 def buildProgram(vertex_code,fragment_code):
 
 	# Request a program and shader slots from GPU
-	program  = gl.glCreateProgram()
-	vertex   = gl.glCreateShader(gl.GL_VERTEX_SHADER)
+	program	 = gl.glCreateProgram()
+	vertex	 = gl.glCreateShader(gl.GL_VERTEX_SHADER)
 	fragment = gl.glCreateShader(gl.GL_FRAGMENT_SHADER)
 
 	# Set shaders source
@@ -213,9 +213,9 @@ class GL_BatchImageRenderer():
 			logging.debug("layersContent table: %s" + str (self.layersContent))
 		
 		self.data = np.zeros(6, [("position", np.float32, 4), 
-								 ("color",    np.float32, 4),
+								 ("color",	  np.float32, 4),
 								 ("texCoord", np.float32, 2),
-								 ("imageIndex", np.int32,   1) ])
+								 ("imageIndex", np.int32,	1) ])
 		
 		VAO_ID = gl.glGenVertexArrays(1)
 		gl.glBindVertexArray(VAO_ID)
@@ -264,7 +264,7 @@ class GL_BatchImageRenderer():
 	def buildBuffer(self,data):
 		newbuffer = gl.glGenBuffers(1)												# Request a buffer slot from GPU
 		gl.glBindBuffer(gl.GL_ARRAY_BUFFER, newbuffer)								# Select the buffer
-		gl.glBufferData(gl.GL_ARRAY_BUFFER, data.nbytes, data, gl.GL_STATIC_DRAW) 	# Upload data
+		gl.glBufferData(gl.GL_ARRAY_BUFFER, data.nbytes, data, gl.GL_STATIC_DRAW)	# Upload data
 		return newbuffer
 
 	def bindAttributes(self, buffer):
@@ -317,8 +317,8 @@ class GL_BatchImageRenderer():
 		
 		self.modelMatrixLocationsTable = []
 		for i in range (0, self.maxImagesPerBuffer):
-			if sys.platform.startswith('darwin') :  
-				self.modelMatrixLocationsTable.append(self.modelMatrixLoc+i*4)  # on OS X for some reason ?!?
+			if sys.platform.startswith('darwin') :	
+				self.modelMatrixLocationsTable.append(self.modelMatrixLoc+i*4)	# on OS X for some reason ?!?
 			else:
 				self.modelMatrixLocationsTable.append(self.modelMatrixLoc+i)	# on PC
 		
@@ -328,7 +328,7 @@ class GL_BatchImageRenderer():
 		
 		self.textMatrixLocationsTable = []
 		for i in range (0, self.maxImagesPerBuffer):
-			if sys.platform.startswith('darwin') :  
+			if sys.platform.startswith('darwin') :	
 				self.textMatrixLocationsTable.append(self.textMatrixLoc+i*3)  # on OS X for some reason ?!?
 			else:
 				self.textMatrixLocationsTable.append(self.textMatrixLoc+i)	# on PC
@@ -352,14 +352,14 @@ class GL_BatchImageRenderer():
 		logging.info("GL_BatchImageRenderer: fillBuffers")
 		# the idea is to create one buffer per layer and texture group
 		gl.glUseProgram(self.program)
-		for layer in range (0 , len(self.layersContent)): 				# loop layers
-			for textID in self.layersContent[layer] : 					# loop textures dict in the layer
+		for layer in range (0 , len(self.layersContent)):				# loop layers
+			for textID in self.layersContent[layer] :					# loop textures dict in the layer
 				numberImages = len(self.layersContent[layer][textID])
 				logging.debug( "Fill buffers, layer" + str(layer) + "text ID: " + str(textID)+ "Number images:" + str(numberImages))
 				if numberImages > 0:	# no point creating a buffer if there are no images in this 
 					currentImgTable = self.layersContent[layer][textID]
 					bufferdata = self.layersContent[layer][textID][0].data # start filling the buffer with the data from the first image
-					logging.debug ("Current Image table: "  + str(currentImgTable)) 
+					logging.debug ("Current Image table: "	+ str(currentImgTable)) 
 					imageID = currentImgTable[0].id
 					logging.debug ("imageID:" + str(imageID))
 					modelMatrix = currentImgTable[0].modelMatrix
@@ -461,51 +461,51 @@ class GL_Image:
 			self.text_originy = float(cliprect_origin[1])/float(self.height)
 			
 		if cliprect !=None:
-			self.text_width 	= float(self.text_originx + cliprect[0])/float(self.width)
+			self.text_width		= float(self.text_originx + cliprect[0])/float(self.width)
 			self.text_height	= float(self.text_originy + cliprect[1])/float(self.height)
 		
 		logging.debug("Loaded texture GL ID: %s , width: %s, height: %s", self.texture,self.width,self.height)
 		
 		self.data = np.zeros(6, [("position", np.float32, 4), 
-								 ("color",    np.float32, 4),
+								 ("color",	  np.float32, 4),
 								 ("texCoord", np.float32, 2),
-								 ("imageIndex",       np.int32,   1) ])
+								 ("imageIndex",		  np.int32,	  1) ])
 								 
-		self.data['color']    = [ (1,0,0,1), 
+		self.data['color']	  = [ (1,0,0,1), 
 								  (0,1,0,1), 
 								  (0,0,1,1), 
 								  (1,1,0,1), 
 								  (0,0,1,1), 
 								  (1,1,0,1) ]
-		#self.data['position'] = [ (0,0),   (0,gl_height),   (gl_width,0),   (gl_width,gl_height)   ]
+		#self.data['position'] = [ (0,0),	(0,gl_height),	 (gl_width,0),	 (gl_width,gl_height)	]
 		self.data['position'] = [ (-self.width/2 , -self.height/2 , 0.0 , 1.0),
-								  (-self.width/2 ,  self.height/2 , 0.0 , 1.0),
+								  (-self.width/2 ,	self.height/2 , 0.0 , 1.0),
 								  ( self.width/2 , -self.height/2 , 0.0 , 1.0),
 								  ( self.width/2 , -self.height/2 , 0.0 , 1.0),
-								  ( self.width/2 ,  self.height/2 , 0.0 , 1.0),
-								  (-self.width/2 ,  self.height/2 , 0.0 , 1.0),  ]
+								  ( self.width/2 ,	self.height/2 , 0.0 , 1.0),
+								  (-self.width/2 ,	self.height/2 , 0.0 , 1.0),	 ]
 		self.data['texCoord'] = [ (self.text_originx					,	self.text_originy					),
-								  (self.text_originx					,	self.text_originy+self.text_height	),   
+								  (self.text_originx					,	self.text_originy+self.text_height	),	 
 								  (self.text_originx+self.text_width	,	self.text_originy					),
 								  (self.text_originx+self.text_width	,	self.text_originy					),
 								  (self.text_originx+self.text_width	,	self.text_originy+self.text_height	),
-								  (self.text_originx					,	self.text_originy+self.text_height	)   ]
+								  (self.text_originx					,	self.text_originy+self.text_height	)	]
 		self.data['imageIndex'] = [ (self.id),
-							(self.id),   
+							(self.id),	 
 							(self.id),
 							(self.id),
 							(self.id),
-							(self.id)   ]
+							(self.id)	]
 
 	def resize(self,width,height):
 		self.width = width
 		self.height = height
 		self.data['position'] = [ (-self.width/2 , -self.height/2 , 0.0 , 1.0),
-								  (-self.width/2 ,  self.height/2 , 0.0 , 1.0),
+								  (-self.width/2 ,	self.height/2 , 0.0 , 1.0),
 								  ( self.width/2 , -self.height/2 , 0.0 , 1.0),
 								  ( self.width/2 , -self.height/2 , 0.0 , 1.0),
-								  ( self.width/2 ,  self.height/2 , 0.0 , 1.0),
-								  (-self.width/2 ,  self.height/2 , 0.0 , 1.0),  ]
+								  ( self.width/2 ,	self.height/2 , 0.0 , 1.0),
+								  (-self.width/2 ,	self.height/2 , 0.0 , 1.0),	 ]
 	
 	def translateTexture(self, textureTranslation):
 		
@@ -577,8 +577,8 @@ class GL_Image:
 				
 				translateBackMat = np.identity(3)
 				if textureRotationCenter !=None:	# translate the model to the rotation center
-					translateBackMat[0,2] =  float(textureRotationCenter[0])/self.GLtexture.width
-					translateBackMat[1,2] =  float(textureRotationCenter[1])/self.GLtexture.height
+					translateBackMat[0,2] =	 float(textureRotationCenter[0])/self.GLtexture.width
+					translateBackMat[1,2] =	 float(textureRotationCenter[1])/self.GLtexture.height
 				else:
 					translateBackMat[0,2] = self.text_originx+self.text_width/2
 					translateBackMat[1,2] = self.text_originy+self.text_height/2
@@ -613,30 +613,30 @@ class GL_Image:
 
 class GL_rectangle:
 	vertex_code = """
-    #version 330
-    in vec4 position;
-    in vec4 color;
-    
-    uniform mat4 transMat;
-    uniform mat4 projMatrix;
+	#version 330
+	in vec4 position;
+	in vec4 color;
+	
+	uniform mat4 transMat;
+	uniform mat4 projMatrix;
 
-    out vec4 v_color;
-    
-    void main()
-    {
-        gl_Position = projMatrix*transMat*position;
-        v_color = color;
-    } """
+	out vec4 v_color;
+	
+	void main()
+	{
+		gl_Position = projMatrix*transMat*position;
+		v_color = color;
+	} """
 
 	fragment_code = """
-    #version 330
-    in vec4 v_color;
-    out vec4 outColor;
-    
-    void main()
-    {
-        outColor = v_color;
-    } """
+	#version 330
+	in vec4 v_color;
+	out vec4 outColor;
+	
+	void main()
+	{
+		outColor = v_color;
+	} """
 	
 	def __init__(self, width, height, linewidth = 1, color = COLOR_GREEN):
 		self.width = width
@@ -647,17 +647,17 @@ class GL_rectangle:
 		logging.info("Init GL_Rectangle, width: %s, height: %s", self.width,self.height)
 		
 		self.data = np.zeros(4, [("position", np.float32, 4), 
-								 ("color",    np.float32, 4) ])
+								 ("color",	  np.float32, 4) ])
 		
-		self.data['color']    = [ (color[0],color[1],color[2],1),
+		self.data['color']	  = [ (color[0],color[1],color[2],1),
 								  (color[0],color[1],color[2],1),
 								  (color[0],color[1],color[2],1),
 								  (color[0],color[1],color[2],1) ]
 
 		self.data['position'] = [ (-self.width/2 , -self.height/2 , 0.0 , 1.0),
-								  (-self.width/2 ,  self.height/2 , 0.0 , 1.0),
-								  ( self.width/2 ,  self.height/2 , 0.0 , 1.0),
-								  ( self.width/2 , -self.height/2 , 0.0 , 1.0)  ]
+								  (-self.width/2 ,	self.height/2 , 0.0 , 1.0),
+								  ( self.width/2 ,	self.height/2 , 0.0 , 1.0),
+								  ( self.width/2 , -self.height/2 , 0.0 , 1.0)	]
 		
 		self.VAO_ID = gl.glGenVertexArrays(1)
 		gl.glBindVertexArray(self.VAO_ID)
@@ -701,30 +701,30 @@ class GL_rectangle:
 
 class GL_Filled_Rectangle:
 	vertex_code = """
-    #version 330
-    in vec4 position;
-    in vec4 color;
-    
-    uniform mat4 transMat;
-    uniform mat4 projMatrix;
+	#version 330
+	in vec4 position;
+	in vec4 color;
+	
+	uniform mat4 transMat;
+	uniform mat4 projMatrix;
 
-    out vec4 v_color;
-    
-    void main()
-    {
-        gl_Position = projMatrix*transMat*position;
-        v_color = color;
-    } """
+	out vec4 v_color;
+	
+	void main()
+	{
+		gl_Position = projMatrix*transMat*position;
+		v_color = color;
+	} """
 
 	fragment_code = """
-    #version 330
-    in vec4 v_color;
-    out vec4 outColor;
-    
-    void main()
-    {
-        outColor = v_color;
-    } """
+	#version 330
+	in vec4 v_color;
+	out vec4 outColor;
+	
+	void main()
+	{
+		outColor = v_color;
+	} """
 	
 	def __init__(self, width, height, linewidth = 1, color = COLOR_GREEN):
 		self.width = width
@@ -735,9 +735,9 @@ class GL_Filled_Rectangle:
 		logging.info("Init GL_Rectangle, width: %s, height: %s", self.width,self.height)
 		
 		self.data = np.zeros(6, [("position", np.float32, 4), 
-								 ("color",    np.float32, 4) ])
+								 ("color",	  np.float32, 4) ])
 		
-		self.data['color']    = [ (color[0],color[1],color[2],color[3]),
+		self.data['color']	  = [ (color[0],color[1],color[2],color[3]),
 								  (color[0],color[1],color[2],color[3]),
 								  (color[0],color[1],color[2],color[3]),
 								  (color[0],color[1],color[2],color[3]),
@@ -745,11 +745,11 @@ class GL_Filled_Rectangle:
 								  (color[0],color[1],color[2],color[3]) ]
 
 		self.data['position'] = [ (-self.width/2 , -self.height/2 , 0.0 , 1.0),
-								  (-self.width/2 ,  self.height/2 , 0.0 , 1.0),
+								  (-self.width/2 ,	self.height/2 , 0.0 , 1.0),
 								  ( self.width/2 , -self.height/2 , 0.0 , 1.0),
 								  ( self.width/2 , -self.height/2 , 0.0 , 1.0),
-								  ( self.width/2 ,  self.height/2 , 0.0 , 1.0),
-								  (-self.width/2 ,  self.height/2 , 0.0 , 1.0),  ]
+								  ( self.width/2 ,	self.height/2 , 0.0 , 1.0),
+								  (-self.width/2 ,	self.height/2 , 0.0 , 1.0),	 ]
 		
 		self.VAO_ID = gl.glGenVertexArrays(1)
 		gl.glBindVertexArray(self.VAO_ID)
@@ -793,30 +793,30 @@ class GL_Filled_Rectangle:
 
 class GL_Font:
 	vertex_code = """
-    #version 330
-    in vec4 position;
-    in vec2 texCoord;
-    
-    uniform mat4 projMatrix;
+	#version 330
+	in vec4 position;
+	in vec2 texCoord;
+	
+	uniform mat4 projMatrix;
 
-    out vec2 v_texCoord;
-    
-    void main()
-    {
-        gl_Position = projMatrix*position;
-        v_texCoord = texCoord;
-    } """
+	out vec2 v_texCoord;
+	
+	void main()
+	{
+		gl_Position = projMatrix*position;
+		v_texCoord = texCoord;
+	} """
 
 	fragment_code = """
-    #version 330
-    in vec2 v_texCoord;
-    out vec4 outColor;
-    uniform sampler2D tex;
+	#version 330
+	in vec2 v_texCoord;
+	out vec4 outColor;
+	uniform sampler2D tex;
 
-    void main()
-    {
-        outColor = texture(tex, v_texCoord);
-    } """
+	void main()
+	{
+		outColor = texture(tex, v_texCoord);
+	} """
 
 	def __init__(self,fontName,fontSize, fontColor = (255,255,255), antialias = True, fontKerning = 0):
 		logging.debug('GL_Font_3 - initialising font %s ',fontName)
@@ -836,14 +836,17 @@ class GL_Font:
 		# render each character
 		for ch in range(32,177):
 			letter_render = self.font.getmask(chr(ch))
-			letter_w, letter_h = self.font.getsize(chr(ch))
+			letter_w = self.font.getlength(chr(ch));
+			letter_h = letter_w
 			
-			letter_im  =  Image.new ( "RGBA", (letter_w, letter_h), (self.fontColor[0],self.fontColor[1],self.fontColor[2],0) )
-			draw  =  ImageDraw.Draw ( letter_im )
+			# letter_h = self.font.getsize(chr(ch))
+			
+			letter_im  =  Image.new ( "RGB", (int(letter_w), int(letter_h)), color = (self.fontColor[0],self.fontColor[1],self.fontColor[2]) )
+			draw  =	 ImageDraw.Draw ( letter_im )
 			draw.text ( (0,0), chr(ch), font=self.font, fill=self.fontColor )
 			#letter_im.save('letters\letter'+str(ch)+'.png')
 			letter_im = letter_im.transpose(Image.FLIP_TOP_BOTTOM)
-			im_data = np.fromstring(letter_im.tobytes(), np.uint8)
+			im_data = np.frombuffer(letter_im.tobytes(), np.uint8)
 			
 			if letter_h > self.textHeight:
 				self.textHeight = letter_h
@@ -878,17 +881,17 @@ class GL_Font:
 								 ("texCoord", np.float32, 2) ])
 								 
 		self.data['position'] = [ (-self.textWidth/2 +600, -self.textHeight/2 +200, 0.0 , 1.0),
-								  (-self.textWidth/2 +600,  self.textHeight/2 +200, 0.0 , 1.0),
+								  (-self.textWidth/2 +600,	self.textHeight/2 +200, 0.0 , 1.0),
 								  ( self.textWidth/2 +600, -self.textHeight/2 +200, 0.0 , 1.0),
 								  ( self.textWidth/2 +600, -self.textHeight/2 +200, 0.0 , 1.0),
-								  ( self.textWidth/2 +600,  self.textHeight/2 +200, 0.0 , 1.0),
-								  (-self.textWidth/2 +600,  self.textHeight/2 +200, 0.0 , 1.0),  ]
+								  ( self.textWidth/2 +600,	self.textHeight/2 +200, 0.0 , 1.0),
+								  (-self.textWidth/2 +600,	self.textHeight/2 +200, 0.0 , 1.0),	 ]
 		self.data['texCoord'] = [ (0,0),
 								  (0,1),   
 								  (1,0),
 								  (1,0),
 								  (1,1),
-								  (0,1)   ]
+								  (0,1)	  ]
 								  
 		self.bindAttributes(self.buffer)
 		self.bindUniforms()
@@ -985,34 +988,34 @@ class GL_Font:
 		
 class GL_Image_OLD:
 	vertex_code = """
-    uniform float scale;
-    attribute vec4 position;
-    attribute vec4 color;
-    attribute vec2 texCoord;
-    
-    uniform mat4 transMat;
-    uniform mat4 projMatrix;
+	uniform float scale;
+	attribute vec4 position;
+	attribute vec4 color;
+	attribute vec2 texCoord;
+	
+	uniform mat4 transMat;
+	uniform mat4 projMatrix;
 
-    varying vec4 v_color;
-    varying vec2 v_texCoord;
-    
-    void main()
-    {
-        gl_Position = projMatrix*transMat*position;
-        v_color = color;
-        v_texCoord = texCoord;
-    } """
+	varying vec4 v_color;
+	varying vec2 v_texCoord;
+	
+	void main()
+	{
+		gl_Position = projMatrix*transMat*position;
+		v_color = color;
+		v_texCoord = texCoord;
+	} """
 
 	fragment_code = """
-    varying vec4 v_color;
-    varying vec2 v_texCoord;
-    
-    uniform sampler2D tex;
+	varying vec4 v_color;
+	varying vec2 v_texCoord;
+	
+	uniform sampler2D tex;
 
-    void main()
-    {
-        gl_FragColor = texture(tex, v_texCoord);
-    } """
+	void main()
+	{
+		gl_FragColor = texture(tex, v_texCoord);
+	} """
 	
 	def __init__(self, GLtexture,cliprect = None,origin = None):
 		logging.info("*************************************")
@@ -1027,28 +1030,28 @@ class GL_Image_OLD:
 		logging.info("Loaded texture GL ID: %s , width: %s, height: %s", self.texture,self.width,self.height)
 		
 		self.data = np.zeros(6, [("position", np.float32, 4), 
-								 ("color",    np.float32, 4),
+								 ("color",	  np.float32, 4),
 								 ("texCoord", np.float32, 2) ])
 								 
-		self.data['color']    = [ (1,0,0,1), 
+		self.data['color']	  = [ (1,0,0,1), 
 								  (0,1,0,1), 
 								  (0,0,1,1), 
 								  (1,1,0,1), 
 								  (0,0,1,1), 
 								  (1,1,0,1) ]
-		#self.data['position'] = [ (0,0),   (0,gl_height),   (gl_width,0),   (gl_width,gl_height)   ]
+		#self.data['position'] = [ (0,0),	(0,gl_height),	 (gl_width,0),	 (gl_width,gl_height)	]
 		self.data['position'] = [ (-self.width/2 , -self.height/2 , 0.0 , 1.0),
-								  (-self.width/2 ,  self.height/2 , 0.0 , 1.0),
+								  (-self.width/2 ,	self.height/2 , 0.0 , 1.0),
 								  ( self.width/2 , -self.height/2 , 0.0 , 1.0),
 								  ( self.width/2 , -self.height/2 , 0.0 , 1.0),
-								  ( self.width/2 ,  self.height/2 , 0.0 , 1.0),
-								  (-self.width/2 ,  self.height/2 , 0.0 , 1.0),  ]
+								  ( self.width/2 ,	self.height/2 , 0.0 , 1.0),
+								  (-self.width/2 ,	self.height/2 , 0.0 , 1.0),	 ]
 		self.data['texCoord'] = [ (0,0),
 								  (0,1),   
 								  (1,0),
 								  (1,0),
 								  (1,1),
-								  (0,1)   ]
+								  (0,1)	  ]
 		
 		print ("self.data['position',0]", self.data['position'][0])
 		print ("self.data['position',1]", self.data['position'][1])
