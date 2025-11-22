@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 def readme():
     with open('README.rst') as f:
@@ -11,6 +11,9 @@ setup(name='pySTGraphics',
       author='Stephane Teisserenc',
       author_email='',
       license='MIT',
-      packages=['pySTGraphics'],
+      packages = find_packages(),
+      #packages=['pySTGraphics', 'pySTGraphics.fonts_resource.*'],
       include_package_data=True,
+      package_data = { 'pySTGraphics' : ['fonts_resource/*.ttf','fonts_resource/*.txt' ]},
+      install_requires = ['numpy', 'PyOpenGL', 'PyOpenGL_accelerate', 'Pillow'],
       zip_safe=False)

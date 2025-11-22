@@ -28,6 +28,7 @@ COLOR_GREEN     = (0,213.0/255.0,0,1.0)
 COLOR_BLUE         = (0.0,0,1.0,1.0)
 COLOR_BLACK     = (0.0,0.0,0.0,1.0)
 
+
 screenWidth = 0
 screenHeight = 0
 
@@ -60,10 +61,12 @@ def reshape(width,height):
 
 def buildProgram(vertex_code,fragment_code):
 
+
     # Request a program and shader slots from GPU
     program  = gl.glCreateProgram()
     vertex   = gl.glCreateShader(gl.GL_VERTEX_SHADER)
     fragment = gl.glCreateShader(gl.GL_FRAGMENT_SHADER)
+
 
     # Set shaders source
     gl.glShaderSource(vertex, [vertex_code])
@@ -270,6 +273,7 @@ class GL_BatchImageRenderer():
         gl.glBufferData(gl.GL_ARRAY_BUFFER, data.nbytes, data, gl.GL_STATIC_DRAW)     # Upload data
         return newbuffer
 
+
     def bindAttributes(self, buffer):
         
         # Bind attributes
@@ -383,6 +387,7 @@ class GL_BatchImageRenderer():
                             textMatrix = currentImgTable[j].textMatrix
                             gl.glUniformMatrix3fv(self.textMatrixLocationsTable[imageID], 1, gl.GL_TRUE, textMatrix )
 
+
                     
                     logging.info("GL_BatchImageRenderer: Creating buffer for layer %s, texture ID %s", layer, textID)
                     #print "Buffer data: \n", bufferdata
@@ -434,6 +439,7 @@ class GL_BatchImageRenderer():
         
     
 class GL_Image:
+
     id_generator = itertools.count(0)
     
     def __init__(self, GLtexture,cliprect = None,cliprect_origin = None):
@@ -625,13 +631,15 @@ class GL_rectangle:
     uniform mat4 transMat;
     uniform mat4 projMatrix;
 
-    out vec4 v_color;
-    
-    void main()
-    {
-        gl_Position = projMatrix*transMat*position;
-        v_color = color;
-    } """
+
+	out vec4 v_color;
+	
+	void main()
+	{
+		gl_Position = projMatrix*transMat*position;
+		v_color = color;
+	} """
+
 
     fragment_code = """
     #version 330
@@ -705,6 +713,7 @@ class GL_rectangle:
         gl.glDrawArrays(gl.GL_LINE_LOOP, 0, 4)
 
 class GL_Filled_Rectangle:
+
     vertex_code = """
     #version 330
     in vec4 position;
@@ -713,13 +722,13 @@ class GL_Filled_Rectangle:
     uniform mat4 transMat;
     uniform mat4 projMatrix;
 
-    out vec4 v_color;
-    
-    void main()
-    {
-        gl_Position = projMatrix*transMat*position;
-        v_color = color;
-    } """
+	out vec4 v_color;
+	
+	void main()
+	{
+		gl_Position = projMatrix*transMat*position;
+		v_color = color;
+	} """
 
     fragment_code = """
     #version 330
@@ -763,6 +772,7 @@ class GL_Filled_Rectangle:
         gl.glBindBuffer(gl.GL_ARRAY_BUFFER, self.buffer)    # Make this buffer the default one
         gl.glBufferData(gl.GL_ARRAY_BUFFER, self.data.nbytes, self.data, gl.GL_STATIC_DRAW)
 
+
         # Bind attributes
         # --------------------------------------
         stride = self.data.strides[0]
@@ -804,13 +814,13 @@ class GL_Font:
     
     uniform mat4 projMatrix;
 
-    out vec2 v_texCoord;
-    
-    void main()
-    {
-        gl_Position = projMatrix*position;
-        v_texCoord = texCoord;
-    } """
+	out vec2 v_texCoord;
+	
+	void main()
+	{
+		gl_Position = projMatrix*position;
+		v_texCoord = texCoord;
+	} """
 
     fragment_code = """
     #version 330
@@ -818,90 +828,93 @@ class GL_Font:
     out vec4 outColor;
     uniform sampler2D tex;
 
-    void main()
-    {
-        outColor = texture(tex, v_texCoord);
-    } """
+	void main()
+	{
+		outColor = texture(tex, v_texCoord);
+	} """
 
-    def __init__(self,fontName,fontSize, fontColor = (255,255,255), antialias = True, fontKerning = 0):
-        logging.debug('GL_Font_3 - initialising font %s ',fontName)
-        self.antialias = antialias
-        self.fontColor = fontColor
-        self.fontKerning = fontKerning
-        fontPath = os.path.join(os.path.dirname(__file__), '../../',fontName)
-        self.font = ImageFont.truetype(fontPath, fontSize)
-        self.char = []
-        self.textWidth = 0
-        self.textHeight = 0
-        self.charWidth = 0
-        self.displayString = ""
-        self.x = 0
-        self.y = 0
-        
-        # render each character
-        for ch in range(32,177):
-            letter_render = self.font.getmask(chr(ch))
-            letter_w, letter_h = self.font.getsize(chr(ch))
-            
-            letter_im  =  Image.new ( "RGBA", (letter_w, letter_h), (self.fontColor[0],self.fontColor[1],self.fontColor[2],0) )
-            draw  =  ImageDraw.Draw ( letter_im )
-            draw.text ( (0,0), chr(ch), font=self.font, fill=self.fontColor )
-            #letter_im.save('letters\letter'+str(ch)+'.png')
-            letter_im = letter_im.transpose(Image.FLIP_TOP_BOTTOM)
-            im_data = np.fromstring(letter_im.tobytes(), np.uint8)
-            
-            if letter_h > self.textHeight:
-                self.textHeight = letter_h
-            if letter_w > self.charWidth:
-                self.charWidth = letter_w
-                
-            self.char.append((letter_w, letter_h, im_data))
-        
-        self.textWidth = self.charWidth*len(self.char)
-        
-        logging.debug("Loaded all characters, texture height = %s, texture width = %s", self.textHeight, self.textWidth)
-        # create a texture to hold all characters - we will fill it later
-        self.texture = gl.glGenTextures(1)
-        gl.glBindTexture(gl.GL_TEXTURE_2D, self.texture)
-        gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_LINEAR)
-        gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_LINEAR)
-        gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, gl.GL_RGBA, self.textWidth, self.textHeight, 0, gl.GL_RGBA,
-            gl.GL_UNSIGNED_BYTE, ctypes.c_void_p(0))
-        
-        x = 0
-        for ch in range(0,len(self.char)):
-            gl.glTexSubImage2D(gl.GL_TEXTURE_2D, 0, x, self.textHeight-self.char[ch][1], self.char[ch][0], self.char[ch][1], gl.GL_RGBA, gl.GL_UNSIGNED_BYTE, self.char[ch][2])
-            x += self.charWidth
-        
-        self.program = buildProgram(self.vertex_code,self.fragment_code)
-        self.VAO_ID = gl.glGenVertexArrays(1)
-        gl.glBindVertexArray(self.VAO_ID)
-        # Request a buffer slot from GPU
-        self.buffer = gl.glGenBuffers(1)
-        
-        self.data = np.zeros(6, [("position", np.float32, 4),
-                                 ("texCoord", np.float32, 2) ])
-                                 
-        self.data['position'] = [ (-self.textWidth/2 +600, -self.textHeight/2 +200, 0.0 , 1.0),
-                                  (-self.textWidth/2 +600,  self.textHeight/2 +200, 0.0 , 1.0),
-                                  ( self.textWidth/2 +600, -self.textHeight/2 +200, 0.0 , 1.0),
-                                  ( self.textWidth/2 +600, -self.textHeight/2 +200, 0.0 , 1.0),
-                                  ( self.textWidth/2 +600,  self.textHeight/2 +200, 0.0 , 1.0),
-                                  (-self.textWidth/2 +600,  self.textHeight/2 +200, 0.0 , 1.0),  ]
-        self.data['texCoord'] = [ (0,0),
-                                  (0,1),   
-                                  (1,0),
-                                  (1,0),
-                                  (1,1),
-                                  (0,1)   ]
-                                  
-        self.bindAttributes(self.buffer)
-        self.bindUniforms()
-        gl.glUniformMatrix4fv(self.projMatrixLoc, 1, gl.GL_TRUE, PROJ_MATRIX)
-        
-        gl.glBindVertexArray(0)
-        
-        logging.debug('GL_Font - initialision of font %s complete',fontName)
+	def __init__(self,fontName,fontSize, fontColor = (255,255,255), antialias = True, fontKerning = 0):
+		logging.debug('GL_Font_3 - initialising font %s ',fontName)
+		self.antialias = antialias
+		self.fontColor = fontColor
+		self.fontKerning = fontKerning
+		fontPath = os.path.join(os.path.dirname(__file__), '../../',fontName)
+		self.font = ImageFont.truetype(fontPath, fontSize)
+		self.char = []
+		self.textWidth = 0
+		self.textHeight = 0
+		self.charWidth = 0
+		self.displayString = ""
+		self.x = 0
+		self.y = 0
+		
+		# render each character
+		for ch in range(32,177):
+			letter_render = self.font.getmask(chr(ch))
+			letter_w = self.font.getlength(chr(ch));
+			letter_h = letter_w
+			
+			# letter_h = self.font.getsize(chr(ch))
+			
+			letter_im  =  Image.new ( "RGB", (int(letter_w), int(letter_h)), color = (self.fontColor[0],self.fontColor[1],self.fontColor[2]) )
+			draw  =	 ImageDraw.Draw ( letter_im )
+			draw.text ( (0,0), chr(ch), font=self.font, fill=self.fontColor )
+			#letter_im.save('letters\letter'+str(ch)+'.png')
+			letter_im = letter_im.transpose(Image.FLIP_TOP_BOTTOM)
+			im_data = np.frombuffer(letter_im.tobytes(), np.uint8)
+			
+			if letter_h > self.textHeight:
+				self.textHeight = letter_h
+			if letter_w > self.charWidth:
+				self.charWidth = letter_w
+				
+			self.char.append((letter_w, letter_h, im_data))
+		
+		self.textWidth = self.charWidth*len(self.char)
+		
+		logging.debug("Loaded all characters, texture height = %s, texture width = %s", self.textHeight, self.textWidth)
+		# create a texture to hold all characters - we will fill it later
+		self.texture = gl.glGenTextures(1)
+		gl.glBindTexture(gl.GL_TEXTURE_2D, self.texture)
+		gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_LINEAR)
+		gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_LINEAR)
+		gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, gl.GL_RGBA, self.textWidth, self.textHeight, 0, gl.GL_RGBA,
+			gl.GL_UNSIGNED_BYTE, ctypes.c_void_p(0))
+		
+		x = 0
+		for ch in range(0,len(self.char)):
+			gl.glTexSubImage2D(gl.GL_TEXTURE_2D, 0, x, self.textHeight-self.char[ch][1], self.char[ch][0], self.char[ch][1], gl.GL_RGBA, gl.GL_UNSIGNED_BYTE, self.char[ch][2])
+			x += self.charWidth
+		
+		self.program = buildProgram(self.vertex_code,self.fragment_code)
+		self.VAO_ID = gl.glGenVertexArrays(1)
+		gl.glBindVertexArray(self.VAO_ID)
+		# Request a buffer slot from GPU
+		self.buffer = gl.glGenBuffers(1)
+		
+		self.data = np.zeros(6, [("position", np.float32, 4),
+								 ("texCoord", np.float32, 2) ])
+								 
+		self.data['position'] = [ (-self.textWidth/2 +600, -self.textHeight/2 +200, 0.0 , 1.0),
+								  (-self.textWidth/2 +600,	self.textHeight/2 +200, 0.0 , 1.0),
+								  ( self.textWidth/2 +600, -self.textHeight/2 +200, 0.0 , 1.0),
+								  ( self.textWidth/2 +600, -self.textHeight/2 +200, 0.0 , 1.0),
+								  ( self.textWidth/2 +600,	self.textHeight/2 +200, 0.0 , 1.0),
+								  (-self.textWidth/2 +600,	self.textHeight/2 +200, 0.0 , 1.0),	 ]
+		self.data['texCoord'] = [ (0,0),
+								  (0,1),   
+								  (1,0),
+								  (1,0),
+								  (1,1),
+								  (0,1)	  ]
+								  
+		self.bindAttributes(self.buffer)
+		self.bindUniforms()
+		gl.glUniformMatrix4fv(self.projMatrixLoc, 1, gl.GL_TRUE, PROJ_MATRIX)
+		
+		gl.glBindVertexArray(0)
+		
+		logging.info('GL_Font - initialision of font %s complete',fontName)
 
     def bindUniforms(self):
         # Bind uniforms
@@ -989,6 +1002,7 @@ class GL_Font:
         gl.glBindVertexArray(0)
         
 class GL_Image_OLD:
+
     vertex_code = """
     uniform float scale;
     attribute vec4 position;
@@ -998,15 +1012,15 @@ class GL_Image_OLD:
     uniform mat4 transMat;
     uniform mat4 projMatrix;
 
-    varying vec4 v_color;
-    varying vec2 v_texCoord;
-    
-    void main()
-    {
-        gl_Position = projMatrix*transMat*position;
-        v_color = color;
-        v_texCoord = texCoord;
-    } """
+	varying vec4 v_color;
+	varying vec2 v_texCoord;
+	
+	void main()
+	{
+		gl_Position = projMatrix*transMat*position;
+		v_color = color;
+		v_texCoord = texCoord;
+	} """
 
     fragment_code = """
     varying vec4 v_color;
