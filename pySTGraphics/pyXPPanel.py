@@ -54,8 +54,7 @@ import OpenGL.GL as gl
 import pySTGraphics.glfw as glfw
 import time
 
-#from lib.network import XPlaneUDPServer
-#from lib.arduinoSerial import arduinoSerial
+import pyxpudpserver as XPUDP
 
 import pySTGraphics.OpenGL3lib as gl3lib
 import pySTGraphics.graphicsGL3 as graphicsGL3
@@ -92,7 +91,6 @@ class pyXPPanel():
     fullscreen = False
     showWindowTitleBar = True;
     bufferSwapInterval = 1
-    XPlaneDataServer = None
     batchImageRenderer = None
 
     drawCallbackFuncs = []
@@ -112,11 +110,9 @@ class pyXPPanel():
     # A custom config file can be passed by argument to the script using option -c. for example: python myMainPanelScript.py -c myconfigfile.ini
     #
     
-    def __init__(self, configFile, layers = 5, XPUDPServer = None):
+    def __init__(self, configFile, layers = 5):
         self._loadConfigFile(configFile)
-        self._initDisplay() # initialise GLFW window and OpenGL context
-        self.XPlaneDataServer = XPUDPServer # 
-        self.batchImageRenderer = gl3lib.GL_BatchImageRenderer(10)
+        self.layers = layers
 
     #*******************************************************************************************************
     #
@@ -173,16 +169,16 @@ class pyXPPanel():
             glfw.glfwWindowHint(glfw.GLFW_DECORATED, gl.GL_FALSE)
                 
 
-        logging.info("testing monitor")
+        logging.debug("testing monitor")
         monitors = None
         #print ( glfw.glfwGetMonitors())
         if self.fullscreen == True:
             logging.info("I am full screen")
             monitors = glfw.glfwGetMonitors()
-            logging.info("I have the monitors, %s", monitors)
+            logging.debug("I have the monitors, %s", monitors)
             
             monitorVideoModes = glfw.glfwGetVideoModes(monitors[0])
-            logging.info("monitorVideoModes: %s", monitorVideoModes)
+            logging.debug("monitorVideoModes: %s", monitorVideoModes)
             monitor_id = 0
             if self.monitorID >=0 and self.monitorID <len(monitors):
                 monitor_id = self.monitorID
@@ -191,7 +187,7 @@ class pyXPPanel():
             self.window = glfw.glfwCreateWindow(self.width, self.height, str.encode("pyGaugesPanel"), monitors[monitor_id], None)
         else:
             self.window = glfw.glfwCreateWindow(self.width, self.height, str.encode("pyGaugesPanel"), None, None)
-            glfw.glfwSetWindowPos(self.window, self.window_xPos, self.window_yPos)
+            glfw.glfwSetWindowPos(self.window, self.window_xPos, self.window_yPos+30)
             
         if not self.window:
             logging.error("Could not create window, your version of OpenGL is not supported, exiting!")
@@ -230,7 +226,7 @@ class pyXPPanel():
         self.scrollCallBacks = []
         
         self.frameBufferWidth, self.frameBufferHeight = glfw.glfwGetFramebufferSize(self.window)
-        logging.info("Framebuffer size: %sx%s",  self.frameBufferWidth, self.frameBufferHeight)
+        logging.debug("Framebuffer size: %sx%s",  self.frameBufferWidth, self.frameBufferHeight)
         gl3lib.screenWidth = self.frameBufferWidth
         gl3lib.screenHeight = self.frameBufferHeight
         gl3lib.PROJ_MATRIX[0,0] = 2.0/self.frameBufferWidth
@@ -238,7 +234,13 @@ class pyXPPanel():
         
         fonts.initFonts()
         
-        # ADF ADF indicator
+        if self.batchImageRenderer == None:
+            self.batchImageRenderer = gl3lib.GL_BatchImageRenderer(self.layers)
+            self.batchImageRenderer.initialise()
+        else: 
+            self.batchImageRenderer.initialise()
+            
+        # xplane status
         self.receivingXPdataText = graphicsGL3.TextField(fonts.VERA_20PT_BOLD_ORANGE)
         self.receivingXPdataText.setText('-- !! Not receiving any data from XPlane !! --')
         self.receivingXPdataText.setBackgroundColor((1.0,1.0,1.0,0.75))
@@ -343,6 +345,12 @@ class pyXPPanel():
         self.arduinoSerialConnection = arduinoSerial.ArduinoSerial(self.ARD_PORT, self.ARD_BAUD, self.XPlaneDataServer)
         self.arduinoSerialConnection.start()
         '''
+        
+    ## resize window. If in full screen, will resize the resolution, if not then will resize the window itself
+    def setWindowSize(self, width, height):
+        glfw.glfwSetWindowSize(self.window, int(width), int(height))
+        
+    
     ## Register a callback for the GLFW text input event: Your callback function will be called if text is input and receive the Unicode code point.
     # @param charCallBack: user callback function for this event
     # The callback function receives Unicode code points for key events that would have led to regular text input and generally behaves as a standard text field on that platform
@@ -410,10 +418,15 @@ class pyXPPanel():
     def setDrawCallback(self, drawCallbackFunc):
         self.drawCallbackFuncs.append(drawCallbackFunc)
     
-    
+    def initialise(self):
+        self._initDisplay()
+        self.drawCallbackFuncs = []
+        
     ## Starts the main application loop, call once all initialisation is done.
     # 
     def run(self):
+        
+        
         self.batchImageRenderer.fillBuffers()
         
         lastFPStime = time.time()
@@ -440,13 +453,13 @@ class pyXPPanel():
             for drawCallback in self.drawCallbackFuncs:
                 drawCallback()
                 self.batchImageRenderer.render()
-                
+            '''
             if self.XPlaneDataServer.XPalive == True:
                 self.receivingXPdataText.setVisible(False)
             else:
                 self.receivingXPdataText.setVisible(True)
             self.receivingXPdataText.draw()
-            
+            '''
             
             
             # Swap front and back buffers
@@ -456,8 +469,10 @@ class pyXPPanel():
         
         logging.info("Bye")
         #XPlaneUDPServer.pyXPUDPServer.quit()
-        
+        self.drawCallbackFuncs = []
         #if self.arduinoSerialConnection != None:
         #    self.arduinoSerialConnection.quit()
-            
+        #self.batchImageRenderer.initialise()
+        
+        glfw.glfwDestroyWindow(self.window)
         glfw.glfwTerminate()

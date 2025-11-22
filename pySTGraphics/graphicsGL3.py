@@ -44,8 +44,8 @@ def parseTextCoordinates(textCoordinates):
     
     textCoordinatesSplit = textCoordinates.split(',')
     
-    outCoordinates[0] = int(textCoordinatesSplit[0])
-    outCoordinates[1] = int(textCoordinatesSplit[1])
+    outCoordinates[0] = float(textCoordinatesSplit[0])
+    outCoordinates[1] = float(textCoordinatesSplit[1])
     
     return outCoordinates
 
@@ -74,6 +74,177 @@ def returnPointsList(pointsString):
 
 
     return pointsList
+
+class PanelFileConfig(object):
+    
+    def __init__(self, XMLconfigFilePath):
+        self.XMLconfigFilePath = XMLconfigFilePath
+        self.configFileLoaded = False
+        if  XMLconfigFilePath != None:
+            try:
+                self.tree = ET.parse(self.XMLconfigFilePath)
+                self.root = self.tree.getroot()
+                if self.root.tag == "Container":
+                    self.configFileLoaded = True
+                else:
+                    logging.warning('Root tag incorrect, can not load configuration file, will continue with default values and empty container')
+            except:
+                logging.error('Error while loading container config file', exc_info=True)
+                self.configFileLoaded = False
+    
+    def createConfigFile(self, XMLconfigFile):
+        config_file = open(XMLconfigFile, "w")
+        config_file.write("<Container></Container>")
+        config_file.close()
+    
+    def getPanelConfig(self):
+        # some default values
+        if self.configFileLoaded == False:
+            panelConfigDict = {
+                            'position': [0,0],
+                            'size': [640,480],
+                            'name': 'name'
+                            }
+        if self.configFileLoaded == True:
+            panelConfigDict = {
+                            'position': parseTextCoordinates(self.root.attrib['position']),
+                            'size': parseTextCoordinates(self.root.attrib['size']),
+                            'name': self.root.attrib['name']
+                            }
+        return panelConfigDict
+        
+    def getComponents(self):
+        if self.configFileLoaded == True:
+            itemListConfig = []
+            
+            for child in self.root:
+                logging.debug(child.tag, child.attrib)
+                
+                maintainProportions = True
+                if child.attrib['maintainProportions'] == "False":
+                    maintainProportions = False
+                
+                resizeToContainer = True
+                if child.attrib['resizeToContainer'] == "False":
+                    resizeToContainer = False
+                    
+                itemListConfig.append ( {
+                                        'containerType': child.tag,
+                                        'texture': os.path.join(working_dir,child.attrib['texture']), 
+                                        'layer': int(child.attrib['layer']), 
+                                        'position': parseTextCoordinates(child.attrib['position']), 
+                                        'cliprect': parseTextCoordinates(child.attrib['cliprect']),
+                                        'origin': parseTextCoordinates(child.attrib['origin']),
+                                        'name': child.attrib['name'],
+                                        'maintainProportions': maintainProportions,
+                                        'resizeToContainer' : resizeToContainer
+                                        })
+            return itemListConfig
+        else :
+            return []
+    
+    def getComponentConfig(self, componentName):
+        if self.configFileLoaded == True:
+            logging.debug("trying to find comp tag for component: %s", componentName)
+            compTags = self.root.findall(".//*[@name='"+componentName+"']")
+            
+            if len(compTags) > 0:
+                compTag = compTags[0]
+                logging.debug ("found component, name: %s", compTag.attrib['name'])
+                
+                maintainProportions = True
+                if compTag.attrib['maintainProportions'] == "False":
+                    maintainProportions = False
+                
+                resizeToContainer = True
+                if compTag.attrib['resizeToContainer'] == "False":
+                    resizeToContainer = False
+                    
+                componentConfig = {
+                                        'containerType': compTag.tag,
+                                        'texture': os.path.join(working_dir,compTag.attrib['texture']), 
+                                        'layer': int(compTag.attrib['layer']), 
+                                        'position': parseTextCoordinates(compTag.attrib['position']), 
+                                        'cliprect': parseTextCoordinates(compTag.attrib['cliprect']),
+                                        'origin': parseTextCoordinates(compTag.attrib['origin']),
+                                        'name': compTag.attrib['name'],
+                                        'maintainProportions': maintainProportions,
+                                        'resizeToContainer' : resizeToContainer
+                                        }
+                return componentConfig
+            else :
+                return None
+                
+    def updateComponentConfig(self, componentName, componentType, configDict):
+        if self.configFileLoaded == True:
+            logging.debug("trying to find comp tag for component: %s", componentName)
+            compTags = self.root.findall(".//*[@name='"+componentName+"']")
+            
+            if len(compTags) > 0:
+                compTag = compTags[0]
+                logging.debug ("found component, name: %s", compTag.attrib['name'])
+                
+                if componentType == 'ImagePanel':
+                    compTag.attrib['texture'] = configDict['texture']
+                    compTag.attrib['layer'] = str(configDict['layer'])
+                    compTag.attrib['position'] = str(configDict['position'])
+                    compTag.attrib['cliprect'] = str(configDict['cliprect'])
+                    compTag.attrib['origin'] = str(configDict['origin'])
+                    compTag.attrib['name'] = configDict['name']
+                    
+                    compTag.attrib['maintainProportions'] = str(configDict['maintainProportions'])
+                    compTag.attrib['resizeToContainer'] = str(configDict['resizeToContainer'])
+                
+            else :
+                return None
+                
+                
+    def getComponentTransformations(self, componentName):
+        transformationsList = []
+        
+        if self.configFileLoaded == True:
+            logging.debug("trying to find comp tag for component: %s", componentName)
+            compTags = self.root.findall(".//*[@name='"+componentName+"']")
+            
+            if len(compTags) > 0:
+                compTag = compTags[0]
+                logging.info ("found component, name: %s", compTag.attrib['name'])
+                
+                for transfTag in compTag:
+                    if transfTag.tag == 'translation' and transfTag.attrib['enabled'] == 'True' :
+                        transformationsList.append ( {
+                                                    'transfType': transfTag.tag,
+                                                    'enabled': transfTag.attrib['enabled'],
+                                                    'XPdataref': transfTag.attrib['XPdataref'],
+                                                    'indValueToTranslationTable': returnPointsList(transfTag.attrib['indValueToTranslationTable']),
+                                                    'translationConvertFunction': transfTag.attrib['translationConvertFunction'],
+                                                    'translationAngle': float(transfTag.attrib['translationAngle']),
+                                                    'addAngleToRotation': float(transfTag.attrib['addAngleToRotation'])
+                                                })
+                    if transfTag.tag == 'rotation' and transfTag.attrib['enabled'] == 'True':
+                        transformationsList.append ( {
+                                                    'transfType': transfTag.tag,
+                                                    'enabled': transfTag.attrib['enabled'],
+                                                    'XPdataref': transfTag.attrib['XPdataref'],
+                                                    'indValueToAnglesTable': returnPointsList(transfTag.attrib['indValueToAnglesTable']),
+                                                    'rotationConvertFunction': transfTag.attrib['rotationConvertFunction']
+                                                })
+        logging.info("transformationsList : %s", transformationsList)
+        return transformationsList
+    
+    def updatePanelConfig(self, position, size, name):
+        if self.configFileLoaded == True:
+            self.root.attrib['position'] = str(position)
+            self.root.attrib['size'] = str([int(size[0]), int(size[1])])
+            self.root.attrib['name'] = name
+        
+        
+    def saveToFile(self):
+        if self.configFileLoaded == True:
+            self.tree.write(self.XMLconfigFilePath)
+        else:
+            logger.warning("No config file loaded, please create config file first")
+
 
 class Panel(object):
     x = 0
@@ -151,83 +322,53 @@ class Container(Panel):
     backgroundRectangle = None
     backgroundRectangleSelected = None
     
-    XMLconfigFile = None
-    configFileLoaded = False
-    fileLoadedStatusCallbacks = []
-    
-    
-    def __init__(self, batchImageRenderer = None, position =[0,0], size = [100,100], name = "Container"):
-        logging.info("init Container %s, position: %s, size: %s", name, position, size)
+    def __init__(self, XMLconfigFile = None, position =[0,0], size = [100,100], name = "Container"):
+        logging.info("init Container %s, position: %s, size: %s, config file: %s", name, position, size, XMLconfigFile)
         Panel.__init__(self,position, size, name )
         self.itemList = []
+        self.containerConfig = PanelFileConfig(XMLconfigFile)
+        
+    def initialise(self, batchImageRenderer = None): 
         self.setSelectedBorder(1, OpenGL3lib.COLOR_GREEN)
         self.batchImageRenderer = batchImageRenderer
+        self.itemList = []
         
-    
-    def configureFromFile(self, XMLconfigFile):
-        if XMLconfigFile is not None:
-            try:
-                self.tree = ET.parse(XMLconfigFile)
-                self.root = self.tree.getroot()
-                self.XMLconfigFile = XMLconfigFile
-                self.configFileLoaded = True
-                
-                if self.root.tag == "Container":
-                    self.setPosition(parseTextCoordinates(self.root.attrib['position']))
-                    self.setSize(parseTextCoordinates(self.root.attrib['size']))
-                    self.setName(self.root.attrib['name'])
+        contConfig = self.containerConfig.getPanelConfig()
                     
-                    for child in self.root:
-                        print(child.tag, child.attrib)
-                        if child.tag == "ImagePanel":
-                            imagePanel = ImagePanel(os.path.join(working_dir,child.attrib['texture']), 
-                                                    self.batchImageRenderer, 
-                                                    int(child.attrib['layer']), 
-                                                    parseTextCoordinates(child.attrib['position']), 
-                                                    parseTextCoordinates(child.attrib['cliprect']),
-                                                    parseTextCoordinates(child.attrib['origin']),
-                                                    child.attrib['name'])
-                            if child.attrib['resize'] != "None":
-                                imagePanel.resize(parseTextCoordinates(child.attrib['resize']))
-                            for imageChild in child:
-                                if (imageChild.tag == "translation") and (imageChild.attrib['enabled'] == "True"):
-                                    imagePanel.enableTranslation(imageChild.attrib['XPdataref'],
-                                                                returnPointsList(imageChild.attrib['indValueToTranslationTable']),
-                                                                imageChild.attrib['translationConvertFunction'],
-                                                                float(imageChild.attrib['translationAngle']),
-                                                                float(imageChild.attrib['addAngleToRotation']))
-                                                                
-                                if (imageChild.tag == "rotation") and (imageChild.attrib['enabled'] == "True"):
-                                    imagePanel.enableRotation(imageChild.attrib['XPdataref'],
-                                                                returnPointsList(imageChild.attrib['indValueToAnglesTable']),
-                                                                conversionFunctions.conversionFunctionsDict[imageChild.attrib['rotationConvertFunction']])
-                            #dataSourceReference, indValueToTranslationTable, translationConvertFunction = False,translationAngle=None,addAngleToRotation=None
-                            #enableRotation(self, dataSourceReference, indValueToAnglesTable, rotationConvertFunction = False):
-                            
-                            resize = True
-                            if child.attrib['resizeToContainer'] == "False": resize = False
-                            self.addItem(imagePanel, [0,0], resize)
-                            
-                else:
-                    logging.warning('Root tag incorrect, can not load configuration file, will continue with default values and empty container')
-            except:
-                logging.error('Error while loading arduino config file', exc_info=True)
-                self.configFileLoaded = False
-        else:
-            logging.error('No config file specified, please create a new one or open an existing one')
-            
-        for callback in self.fileLoadedStatusCallbacks:
-            callback(self.configFileLoaded)
-            
-    def registerFileLoadedStatusCallback(self, callback):
-        self.fileLoadedStatusCallbacks.append(callback)
+        self.setPosition(contConfig['position'])
+        self.setSize(contConfig['size'])
+        self.setName(contConfig['name'])
         
-    def createConfigFile(self, XMLconfigFile):
-        config_file = open(XMLconfigFile, "w")
-        config_file.write("<Container></Container>")
-        config_file.close()
-    
-    
+        contComponents = self.containerConfig.getComponents()
+        
+        for component in contComponents:
+            if component['containerType'] == 'ImagePanel':
+                imagePanel = ImagePanel (component['texture'], 
+                                        self.batchImageRenderer, 
+                                        component['layer'],
+                                        component['position'],
+                                        component['cliprect'],
+                                        component['origin'],
+                                        component['name'])
+                
+                
+                compTransformations = self.containerConfig.getComponentTransformations(component['name'])
+                
+                for compTransformation in compTransformations:
+                    if compTransformation['transfType'] == 'translation' :
+                        imagePanel.enableTranslation(compTransformation['XPdataref'],
+                                                    compTransformation['indValueToTranslationTable'],
+                                                    conversionFunctions.conversionFunctionsDict[compTransformation['translationConvertFunction']],
+                                                    compTransformation['translationAngle'],
+                                                    compTransformation['addAngleToRotation'])
+                    if compTransformation['transfType'] == 'rotation' :
+                        imagePanel.enableRotation(compTransformation['XPdataref'],
+                                                    compTransformation['indValueToAnglesTable'],
+                                                    conversionFunctions.conversionFunctionsDict[compTransformation['rotationConvertFunction']])
+                                                    
+
+                self.addItem(imagePanel, component['position'], component['resizeToContainer'], component['maintainProportions'])
+                
     def setBackgroundColor(self, color):
         self.backgroundRectangle = OpenGL3lib.GL_Filled_Rectangle(self.width, self.height, 1, color)
     
@@ -237,10 +378,34 @@ class Container(Panel):
     def setName(self, name):
         self.name = name
     
-    def addItem(self,item,relativePosition=[0,0], resize = True):
+    def getItemByName(self, itemName):
+        for item in self.itemList:
+            if item.name == itemName: 
+                return item
+        return None
+        
+    
+    def addItem(self,item,relativePosition=[0,0], resize = True, maintainProportions = True):
         
         if resize == True:
-            item.resize([self.width,self.height])
+            logging.info ("Container addItem, resizing item name %s, with width %s, height %s", item.name, item.width, item.height)
+            
+            if maintainProportions == True:
+                itemlength = item.height
+                if item.width > item.height:
+                    itemlength = item.width
+                length = self.height
+                if self.width < self.height:
+                    length = self.width
+                    
+                factor = length / itemlength
+                item.resize([item.width*factor, item.height*factor])
+            else:
+                widthFactor =  self.width / item.width
+                heightFactor = self.height / item.height 
+                
+                item.resize([item.width*widthFactor, item.height*heightFactor])
+            
         if relativePosition == "CENTER":
             item_width = float(item.width)
             item_height = float(item.height)
@@ -252,7 +417,7 @@ class Container(Panel):
         else: 
             pos = [self.x+relativePosition[0],self.y+relativePosition[1]]
 
-            logging.info("Container: %s, adding item: %s at position: %s of size %sx%s", self.name,item.getName(),pos, item.width, item.height)
+            logging.debug("Container: %s, adding item: %s at position: %s of size %sx%s", self.name,item.getName(),pos, item.width, item.height)
         
         item.setPosition(pos)
         self.itemList.append(item)
@@ -261,8 +426,34 @@ class Container(Panel):
         self.width = size[0]
         self.height = size[1]
     
-    def resize(self,size):
-        logging.info("Container: method resize not implemented yet")
+    def getSize(self):
+        return [self.width, self.height]
+    
+    def resize(self,size, maintainContentProportions = True):
+        logging.info("Resizing container to size:%s", size)
+        if maintainContentProportions == True:
+            for item in self.itemList:
+                itemlength = item.height
+                if item.width > item.height:
+                    itemlength = item.width
+                length = size[1]
+                if size[0] < size[1]:
+                    length = size[0]
+                    
+                factor = length / itemlength
+                item.resize([item.width*factor, item.height*factor])
+            
+        else:
+            widthFactor =  size[0] / self.width
+            heightFactor = size[1] / self.height
+            
+            for item in self.itemList:
+                item.resize([item.width*widthFactor, item.height*heightFactor])
+        
+        self.width = size[0]
+        self.height = size[1]
+            
+  
     
     def setBorder(self,linewidth,color):
         self.border = OpenGL3lib.GL_rectangle(self.width,self.height,linewidth,color)
@@ -271,14 +462,16 @@ class Container(Panel):
         self.selectedBorder = OpenGL3lib.GL_rectangle(self.width,self.height,linewidth,color)
     
     def setPosition(self,coordinates):
+        logging.info("Container set position, current [%s,%s] set to coordinates [%s,%s]", self.x, self.y, coordinates[0], coordinates[1])
         x_move = coordinates[0]-self.x
         y_move = coordinates[1]-self.y
         
         self.x += x_move
         self.y += y_move
         
+        logging.info("Container new position [%s,%s]", self.x, self.y)
         for image in self.itemList:
-            image_newpos = (image.x+x_move,image.y+y_move)
+            image_newpos = [image.x+x_move,image.y+y_move]
             image.setPosition(image_newpos)
     
     def moveBy(self,x_move,y_move):
@@ -452,7 +645,7 @@ class TextBox(Container):
     
     def __init__(self,position, size, eventManager, fontName, fontSize, fontColor, name = "TextBox"):
         logging.info("init TextBox %s ", name)
-        Container.__init__(self,position, size, name )
+        Container.__init__(self,None, position, size, name )
         self.name = name
         
         self.setClipping(True)
@@ -489,7 +682,7 @@ class InputTextField(Container):
     
     def __init__(self,position, size, pyGaugesPanel, fontName, fontSize, fontColor, name = "InputTextField"):
         logging.info("init InputTextField %s ", name)
-        Container.__init__(self,position, size, name )
+        Container.__init__(self,None,position, size, name )
         self.entryAccepted = False
         self.setBorder(1,OpenGL3lib.COLOR_GREY)
         self.setSelectedBorder(1,OpenGL3lib.COLOR_WHITE)
@@ -581,6 +774,8 @@ class ImagePanel(Panel):
     refreshTextTranslation = False
     refreshTextRotation = False
     refreshTextZoom = True
+    refreshSize = True
+    
     textTranslating = False
     textTranslationConvertFunction = None
     textTranslationXPdata = None
@@ -615,6 +810,8 @@ class ImagePanel(Panel):
     
     
     def __init__(self, texturePath, batchImageRenderer, layer=0, position=[0,0], cliprect=None, origin=None, name = ""):
+        logging.info("Initialise ImagePanel name:%s texture:%s layer:%s position:%s cliprect:%s origin:%s", name, texturePath, layer, position, cliprect, origin)
+        self.batchImageRenderer = batchImageRenderer
         glTexture = OpenGL3lib.GL_Texture(texturePath)
         self.image = OpenGL3lib.GL_Image(glTexture,cliprect,origin)
         Panel.__init__(self,position, (self.image.width,self.image.height), glTexture.name)
@@ -627,9 +824,9 @@ class ImagePanel(Panel):
         self.y = coordinates[1]
         self.orig_x = coordinates[0]
         self.orig_y = coordinates[1]
-        self.image.draw((self.x,self.y),self.width,self.height,None,self.rot_angle, self.rotationCenter, (self.text_xdev, self.text_ydev),self.text_rot_angle,self.text_zoom)
+        #self.image.draw((self.x,self.y),self.width,self.height,None,self.rot_angle, self.rotationCenter, (self.text_xdev, self.text_ydev),self.text_rot_angle,self.text_zoom)
         self.refreshPosition = True
-        self.image.needRefresh = True
+        #self.image.needRefresh = True
     
     def setVisible(self,visible):
         if self.visible != visible:
@@ -679,9 +876,14 @@ class ImagePanel(Panel):
 
     def resize(self,size):
         if self.image != None:
-            self.image.resize(size[0],size[1])
-            self.width = self.image.width
-            self.height = self.image.height
+            logging.info("ImagePanel name: %s resizing to size %s", self.name, size)
+            
+            self.width = size[0]
+            self.height = size[1]
+            self.image.resize(self.width,self.height)
+            
+            self.refreshSize = True
+            #self.image.needRefresh = True
 
     def toggleVisibility(self, dataSourceReference, visibilityToggleFunction = False):
         self.visibilityToggleFunction = visibilityToggleFunction
@@ -713,7 +915,8 @@ class ImagePanel(Panel):
         #logging.debug("update "+str(self.name))
         #def draw(self, abspos=None, relpos=None, width=None, height=None,
         #color=None, rotation=None, rotationCenter=None):
-        needRefresh = False
+        
+        needRefresh = False #SHOULD BE FALSE
         self.image.needRefresh = False
         
         if self.visibilityXPData:
@@ -738,7 +941,7 @@ class ImagePanel(Panel):
             if self.testMode == False:
                 XPindicatedValue = XPUDP.pyXPUDPServer.getData(self.rotationXPdata)
                 logging.debug(self.rotationXPdata)
-                logging.debug("XP Rotation value:", XPindicatedValue)
+                logging.debug("XP Rotation value:%s", XPindicatedValue)
             else: 
                 XPindicatedValue = self.testValue
             
@@ -753,7 +956,7 @@ class ImagePanel(Panel):
                 self.previous_rot_angle = self.rot_angle
         
         if self.refreshRotation == True:
-            self.needRefresh = True
+            needRefresh = True
             self.previous_rot_angle = self.rot_angle
         
         if self.translating == True:
@@ -813,8 +1016,16 @@ class ImagePanel(Panel):
             #print ("after mult by rot, text xdev, ydev = ",self.text_xdev, self.text_ydev)
         
         if self.refreshPosition == True:
-            self.needRefresh = True
+            logging.debug("Imagepanel refresh position")
+            needRefresh = True
             self.refreshPosition = False
+        
+        if self.refreshSize == True:
+            logging.info("Imagepanel refresh size, ImagePanel size =%s, %s", self.width, self.height)
+            needRefresh = True
+            self.image.resize(self.width,self.height)
+            self.batchImageRenderer.fillBuffers()
+            self.refreshSize = False
         
         if self.textTranslating == True or self.refreshTextTranslation == True:
             #print "self.refreshTextTranslation = ", self.refreshTextTranslation
@@ -845,7 +1056,7 @@ class ImagePanel(Panel):
         #if self.testMode == True:
             #print "drawing ", self.name
         if needRefresh == True:
-            logging.debug("I need to be refreshed")
+            logging.info("I need to be refreshed")
             self.image.needRefresh = True
             self.image.draw((self.x+self.xdev,self.y+self.ydev),
                             self.width,self.height,None,
@@ -853,6 +1064,7 @@ class ImagePanel(Panel):
                             (self.text_xdev, self.text_ydev),
                             self.text_rot_angle,self.text_zoom, 
                             self.textureRotationCenter)
+            #needRefresh = False
 
     # calculate the transformation value (angle or translation)- using the translation table - returns a linear calculation between 2 values in the table
     def convertValueToTransformValue(self,indicatedValue, translationTable):
@@ -892,8 +1104,8 @@ class ImagePanel(Panel):
             factorsTable.append([float(translationTable[i][0]), float(translationTable[i][1]), a, b])
         factorsTable.append([float(translationTable[len(translationTable)-1][0]), float(translationTable[len(translationTable)-1][1]), 1, 0])
         
-        logging.info("createFactorsTable  :: translation table: %s", translationTable)
-        logging.info("createFactorsTable  :: factorsTable table: %s", factorsTable)
+        logging.debug("createFactorsTable  :: translation table: %s", translationTable)
+        logging.debug("createFactorsTable  :: factorsTable table: %s", factorsTable)
         
         return factorsTable
         
@@ -910,7 +1122,7 @@ class TextField(Container):
         self.prefixUnit = False
         self.dataConvertFunction = False
         
-        Container.__init__(self,(0,0), (650,25))
+        Container.__init__(self,None,(0,0), (650,25))
         
     ## Sets the text to be displayed (static value). Note this will have no effect if you have set the TextField instance to display an XPlane value with the setTextDataSource method. 
     # If you want to temporarily display a static text rather than the XPlane value, call setTextDataSource(None) first. You will need to call setTextDataSource() again to re enable the XPlane UDP value if required later on.
